@@ -131,8 +131,8 @@ def addRoads(inMap):
     tempMap = growFromIntersections(tempMap)
     return tempMap
 
-def addAbandonedBuildings(inMap):
-    print('    adding abandoned bldgs...')
+def addAbandonedStuff(inMap):
+    print('    adding abandoned bldgs and vehicles...')
     tempMap = [''] * len(inMap[0])
     site = '-------'  # wherever this occurs on the map, we'll add bldgs.
     for row in range(len(inMap[0])):
@@ -154,10 +154,6 @@ def addAbandonedBuildings(inMap):
         else:
             tempMap[row] += inMap[row]
     return tempMap
-
-def addAbandonedVehicles(inMap):
-    print('    adding abandoned vehicles...')
-    return inMap
 
 def addLootBoxes(inMap):
     print('    adding loot boxes...')
@@ -187,7 +183,6 @@ if __name__ == "__main__":
     map = addRocks(map)
     map = addTrees(map)
     map = addRoads(map)
-    map = addAbandonedBuildings(map)
-    map = addAbandonedVehicles(map)
+    map = addAbandonedStuff(map)
     map = addLootBoxes(map)
     writeOut(map)
