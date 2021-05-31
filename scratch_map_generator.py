@@ -32,7 +32,7 @@ def addRocks(inMap):
     tempMap = ['']*len(inMap[0])
     for row in range(len(inMap[0])):
         for tile in inMap[row]:
-            if random.randint(0,100) <= 30:  # change this comparison to generate more or less
+            if random.randint(0,100) <= 10:  # change this comparison to generate more or less
                 tempMap[row] += '*'
             else:
                 tempMap[row] += tile
@@ -43,7 +43,7 @@ def addTrees(inMap):
     tempMap = [''] * len(inMap[0])
     for row in range(len(inMap[0])):
         for tile in inMap[row]:
-            if random.randint(0, 100) <= 40:  # change this comparison to generate more or less
+            if random.randint(0, 100) <= 10:  # change this comparison to generate more or less
                 tempMap[row] += '^'
             else:
                 tempMap[row] += tile
@@ -100,8 +100,10 @@ def growS(inMap):
         for col in range(len(inMap[0])):
             if 0 < row and tempMap[row-1][col] in '|┬┤├┐┌' and \
                5 < col and '|' not in tempMap[row][col-5:col]:  # and random.randint(0, 100) <= 98:
-                if 0 < col and tempMap[row][col-1] in '-┌└┬┴├|':  # connect to something from W if possible
+                if 0 < col < (len(inMap[0])-2) and tempMap[row][col-1] in '-┌└┬┴├|' and inMap[row][col+1] not in '-┘┐┬┴┤|':  # connect to something from W if possible
                     tempMap[row] += '┘'
+                elif 0 < col < (len(inMap[0])-2) and tempMap[row][col-1] in '-┌└┬┴├|' and inMap[row][col+1] in '-┘┐┬┴┤|':  # connect to something from W if possible
+                    tempMap[row] += '┴'
                 elif col < (len(inMap[0])-1) and inMap[row][col+1] in '-┘┐┬┴┤':  # turn road toward E if something is there
                     tempMap[row] += '└'
                 else:
@@ -131,20 +133,16 @@ def addRoads(inMap):
     tempMap = growFromIntersections(tempMap)
     return tempMap
 
-def addAbandonedStuff(inMap):
-    print('    adding abandoned bldgs and vehicles...')
+def addHouses(inMap):
+    print('    adding abandoned houses and vehicles...')
     tempMap = [''] * len(inMap[0])
-    site = '-------'  # wherever this occurs on the map, we'll add bldgs.
+    site = '----------'  # wherever this occurs on the map, we'll add bldgs.
     for row in range(len(inMap[0])):
         if 0 < row < (len(inMap[0]) - 1) and (site in inMap[row + 1]):  # and random.randint(0, 100) <= 20:
             idx = inMap[row + 1].index(site)
             tempMap[row] += inMap[row][:idx]
-
-            # pick we're adding factories or houses (assuming they wouldn't be next to each other)
-            if random.randint(0, 100) < 50:  # add factories & vehicles
-                bldgs = '23'
-            else:  # add houses & vehicles
-                bldgs = '13'
+            # add houses, vehicles, and empty spaces
+            bldgs = '130'
             for i in range(len(site)):
                 if inMap[row][idx+i] not in '┴┬├┤-|┌└┘┐':  # don't build over roads
                     tempMap[row] += bldgs[random.randint(0, len(bldgs)-1)]
@@ -155,9 +153,29 @@ def addAbandonedStuff(inMap):
             tempMap[row] += inMap[row]
     return tempMap
 
+def addFactories(inMap):
+    print('    adding abandoned factories...')
+    tempMap = [''] * len(inMap[0])
+    builtFactory = 0  # goes true when we place one. needed to get indexing right.
+    for row in range(len(inMap[0])):
+        if builtFactory == 2 or builtFactory == 1:
+            builtFactory -= 1
+            continue
+        for col in range(len(inMap[0])):
+            if row < (len(inMap[0])-6) and col > 6 and inMap[row][col] == '|' and inMap[row+1][col] == '|'and inMap[row+2][col] == '|' and random.randint(0, 100) <= 10:
+                tempMap[row] = inMap[row][:col-3] + '444' + inMap[row][col:]
+                tempMap[row+1] = inMap[row+1][:col - 3] + '424' + inMap[row+1][col:]
+                tempMap[row+2] = inMap[row+2][:col - 3] + '444' + inMap[row+2][col:]
+                builtFactory = 2
+            else:
+                tempMap[row] += inMap[row][col]
+            if builtFactory == 2:
+                break  # done with this row
+    return tempMap
+
 def addLootBoxes(inMap):
     print('    adding loot boxes...')
-    tempMap = ['' * len(inMap[0])] * len(inMap[0])
+    tempMap = [''] * len(inMap[0])
     for row in range(len(inMap[0])):
         for tile in inMap[row]:
             # don't disrupt roads with lootboxes
@@ -165,6 +183,39 @@ def addLootBoxes(inMap):
                 tempMap[row] += '&'
             else:
                 tempMap[row] += tile
+    return tempMap
+
+def transposeMap(inMap):
+    tempMap = [''] * len(inMap[0])
+    for row in range(len(inMap[0])):
+        for col in range(len(inMap[0])):
+            tempMap[row] += inMap[col][row]
+    return tempMap
+
+def addWaterLeftRight(inMap, inWaterBorder):
+    tempMap = [''] * len(inMap[0])
+    leftTideLine = random.randint(0,2*inWaterBorder)
+    rightTideLine = random.randint(0,2*inWaterBorder)
+    for row in range(len(inMap[0])):
+        # x = (a if b else 0)
+        leftTideLine = (leftTideLine + random.randint(-2,2)) if leftTideLine >= inWaterBorder else inWaterBorder
+        leftTideLine = leftTideLine if leftTideLine <= inWaterBorder*2 else inWaterBorder*2
+        rightTideLine = (rightTideLine + random.randint(-2,2)) if rightTideLine >= inWaterBorder else inWaterBorder
+        rightTideLine = rightTideLine if rightTideLine <= inWaterBorder * 2 else inWaterBorder * 2
+        for col in range(len(inMap[0])):
+            if col < (inWaterBorder + leftTideLine) or col > (len(inMap[0])-(inWaterBorder+1)-rightTideLine):
+                tempMap[row] += '.'
+            else:
+                tempMap[row] += inMap[row][col]
+    return tempMap
+
+def addWater(inMap):
+    print('    adding water...')
+    waterBorder = 4  # change this to have more/less tiles of water around the edges
+    tempMap = addWaterLeftRight(inMap, waterBorder)
+    tempMap = transposeMap(tempMap)
+    tempMap = addWaterLeftRight(tempMap, waterBorder)
+    tempMap = transposeMap(tempMap)
     return tempMap
 
 def writeOut(inMap):
@@ -178,11 +229,13 @@ def writeOut(inMap):
         print('        finished writing: ' + filename)
 
 if __name__ == "__main__":
-    size = 512
+    size = 140
     map = makeLand(size)
     map = addRocks(map)
     map = addTrees(map)
     map = addRoads(map)
-    map = addAbandonedStuff(map)
     map = addLootBoxes(map)
+    map = addWater(map)
+    map = addHouses(map)
+    map = addFactories(map)
     writeOut(map)
