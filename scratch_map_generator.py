@@ -56,6 +56,7 @@ def addIntersections(inMap):
     for row in range(len(inMap[0])):
         for col in range(len(inMap[0])):
             if random.randint(0, 100) <= 2:  # change this comparison to generate more or less
+
                 # don't put intersections right next to each other
                 nearbyTiles = ''
                 if 0 < row:
@@ -68,7 +69,28 @@ def addIntersections(inMap):
                     if c in intersections:
                         intersectionNearby = True
                         break
-                if intersectionNearby:
+
+                # don't put roads too close to water
+                nearbyTiles = ''
+
+                # x = (a if b else 0)
+                rBegin = row - 1 if 0 < row else row
+                rEnd = row + 1 if row < (len(inMap[0]) - 1) else row
+                cBegin = col - 1 if 0 < col else col
+                cEnd = col + 1 if col < (len(inMap[0]) - 1) else col
+
+                if not intersectionNearby:
+                    for r in range(rBegin, rEnd):
+                        for c in range(cBegin, cEnd):
+                            nearbyTiles += inMap[r][c]
+                waterNearby = False
+                for t in nearbyTiles:
+                    if t == '.':
+                        waterNearby = True
+                        break
+                inMap[row][col] != '.'
+
+                if intersectionNearby or waterNearby:
                     tempMap[row] += inMap[row][col]
                 else:
                     tempMap[row] += intersections[random.randint(0, len(intersections)-1)]
@@ -81,14 +103,17 @@ def growE(inMap):
     tempMap = [''] * len(inMap[0])
     for row in range(len(inMap[0])):
         for col in range(len(inMap[0])):
-            if 0 < col and tempMap[row][col-1] in '┬┴├-┌└' and random.randint(0, 100) <= 95:  # can grow to E
-                if (0 < row) and (tempMap[row-1][col] in '-┬┤├|┌┐'):  # if we can connect N, do it.
-                    tempMap[row] += '┘'
-                else:
-                    if random.randint(0, 100) <= 90:  # generate more straight roads than not
-                        tempMap[row] += '-'
+            if 0 < col and tempMap[row][col-1] in '┬┴├-┌└' and inMap[row][col] != '.':  # can grow to E
+                if random.randint(0, 100) <= 98:
+                    if (0 < row) and (tempMap[row-1][col] in '-┬┤├|┌┐'):  # if we can connect N, do it.
+                        tempMap[row] += '┘'
                     else:
-                        tempMap[row] += growToE[random.randint(0, len(growToE)-1)]
+                        if random.randint(0, 100) <= 90:  # generate more straight roads than not
+                            tempMap[row] += '-'
+                        else:
+                            tempMap[row] += growToE[random.randint(0, len(growToE)-1)]
+                else:
+                    tempMap[row] += 'x'  # end this road with Kevin's impasse object
             else:
                 tempMap[row] += inMap[row][col]
     return tempMap
@@ -99,18 +124,21 @@ def growS(inMap):
     for row in range(len(inMap[0])):
         for col in range(len(inMap[0])):
             if 0 < row and tempMap[row-1][col] in '|┬┤├┐┌' and \
-               5 < col and '|' not in tempMap[row][col-5:col]:  # and random.randint(0, 100) <= 98:
-                if 0 < col < (len(inMap[0])-2) and tempMap[row][col-1] in '-┌└┬┴├|' and inMap[row][col+1] not in '-┘┐┬┴┤|':  # connect to something from W if possible
-                    tempMap[row] += '┘'
-                elif 0 < col < (len(inMap[0])-2) and tempMap[row][col-1] in '-┌└┬┴├|' and inMap[row][col+1] in '-┘┐┬┴┤|':  # connect to something from W if possible
-                    tempMap[row] += '┴'
-                elif col < (len(inMap[0])-1) and inMap[row][col+1] in '-┘┐┬┴┤':  # turn road toward E if something is there
-                    tempMap[row] += '└'
-                else:
-                    if random.randint(0, 100) <= 90:  # generate more straight roads than not
-                        tempMap[row] += '|'
+               5 < col and '|' not in tempMap[row][col-5:col] and inMap[row][col] != '.':
+                if random.randint(0, 100) <= 98:
+                    if 0 < col < (len(inMap[0])-2) and tempMap[row][col-1] in '-┌└┬┴├|' and inMap[row][col+1] not in '-┘┐┬┴┤|':  # connect to something from W if possible
+                        tempMap[row] += '┘'
+                    elif 0 < col < (len(inMap[0])-2) and tempMap[row][col-1] in '-┌└┬┴├|' and inMap[row][col+1] in '-┘┐┬┴┤|':  # connect to something from W if possible
+                        tempMap[row] += '┴'
+                    elif col < (len(inMap[0])-1) and inMap[row][col+1] in '-┘┐┬┴┤':  # turn road toward E if something is there
+                        tempMap[row] += '└'
                     else:
-                        tempMap[row] += growToS[random.randint(0, len(growToS)-1)]
+                        if random.randint(0, 100) <= 90:  # generate more straight roads than not
+                            tempMap[row] += '|'
+                        else:
+                            tempMap[row] += growToS[random.randint(0, len(growToS)-1)]
+                else:
+                    tempMap[row] += 'x'  # end this road with Kevin's impasse object
             else:
                 tempMap[row] += inMap[row][col]
     return tempMap
@@ -198,10 +226,12 @@ def addWaterLeftRight(inMap, inWaterBorder):
     rightTideLine = random.randint(0,2*inWaterBorder)
     for row in range(len(inMap[0])):
         # x = (a if b else 0)
-        leftTideLine = (leftTideLine + random.randint(-2,2)) if leftTideLine >= inWaterBorder else inWaterBorder
-        leftTideLine = leftTideLine if leftTideLine <= inWaterBorder*2 else inWaterBorder*2
-        rightTideLine = (rightTideLine + random.randint(-2,2)) if rightTideLine >= inWaterBorder else inWaterBorder
-        rightTideLine = rightTideLine if rightTideLine <= inWaterBorder * 2 else inWaterBorder * 2
+        delta = 4
+        max = inWaterBorder*8
+        leftTideLine = (leftTideLine + random.randint(-delta,delta)) if leftTideLine >= inWaterBorder else inWaterBorder
+        leftTideLine = leftTideLine if leftTideLine <= max else max
+        rightTideLine = (rightTideLine + random.randint(-delta,delta)) if rightTideLine >= inWaterBorder else inWaterBorder
+        rightTideLine = rightTideLine if rightTideLine <= max else max
         for col in range(len(inMap[0])):
             if col < (inWaterBorder + leftTideLine) or col > (len(inMap[0])-(inWaterBorder+1)-rightTideLine):
                 tempMap[row] += '.'
@@ -233,9 +263,9 @@ if __name__ == "__main__":
     map = makeLand(size)
     map = addRocks(map)
     map = addTrees(map)
-    map = addRoads(map)
-    map = addLootBoxes(map)
     map = addWater(map)
+    map = addRoads(map)
+    map = addLootBoxes(map)  # fix me for water
     map = addHouses(map)
     map = addFactories(map)
     writeOut(map)
